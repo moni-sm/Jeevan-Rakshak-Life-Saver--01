@@ -10,6 +10,7 @@ export type FormState = {
     userInput: string;
     emergencyType?: string;
     location?: string;
+    firstAid?: string;
   };
 };
 
@@ -36,7 +37,8 @@ export async function submitUserMessage(
         data: {
           userInput,
           emergencyType: emergencyResult.emergencyType || 'unspecified',
-          location: location
+          location: location,
+          firstAid: emergencyResult.firstAid,
         },
       };
     }

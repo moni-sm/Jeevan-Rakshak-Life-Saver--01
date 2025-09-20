@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LoaderCircle, MapPin, Siren } from 'lucide-react';
+import { HeartPulse, LoaderCircle, MapPin, Siren } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -20,6 +20,7 @@ export type Geolocation = {
 type EmergencyDialogProps = {
   emergencyType: string;
   reason: string;
+  firstAid?: string;
   onClose: () => void;
   onLocationFound: (location: Geolocation) => void;
 };
@@ -28,6 +29,7 @@ type EmergencyDialogProps = {
 export function EmergencyDialog({
   emergencyType,
   reason,
+  firstAid,
   onClose,
   onLocationFound,
 }: EmergencyDialogProps) {
@@ -82,6 +84,15 @@ export function EmergencyDialog({
           </AlertDialogDescription>
           <AlertDialogDescription>{reason}</AlertDialogDescription>
         </AlertDialogHeader>
+
+        {firstAid && (
+           <div className="mt-4 rounded-lg border bg-secondary/50 p-4">
+           <h3 className="font-bold text-primary flex items-center gap-2"><HeartPulse/> First Aid Advice</h3>
+           <p className="mt-2 text-sm text-muted-foreground">
+             {firstAid}
+           </p>
+         </div>
+        )}
 
         {step === 'locating' && (
           <div className="flex flex-col items-center justify-center gap-4 py-8">

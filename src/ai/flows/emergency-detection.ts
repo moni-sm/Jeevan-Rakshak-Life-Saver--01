@@ -53,6 +53,10 @@ const EmergencyDetectionOutputSchema = z.object({
     .describe(
       'A numerical value between 0 and 1 indicating the confidence level of the emergency detection. Higher values indicate greater confidence.'
     ),
+  firstAid: z
+    .string()
+    .optional()
+    .describe('Immediate first aid or temporary relief advice for the user while waiting for medical help. This advice should be safe and easy to follow for a layperson. This should be in the same language as the input.'),
 });
 export type EmergencyDetectionOutput = z.infer<typeof EmergencyDetectionOutputSchema>;
 
@@ -65,6 +69,8 @@ const detectEmergencyPrompt = ai.definePrompt({
   input: {schema: EmergencyDetectionInputSchema},
   output: {schema: EmergencyDetectionOutputSchema},
   prompt: `You are an expert medical assistant specializing in emergency detection.  Given the following symptoms, determine if it is an emergency or not.  If it is, provide the type of emergency. Also, provide a confidence level between 0 and 1.
+
+If it is an emergency, provide simple, safe, and effective first aid advice that a person can perform while waiting for a doctor. The advice should be in the same language as the user's query.
 
 Symptoms: {{{symptoms}}}
 Language: {{{language}}}

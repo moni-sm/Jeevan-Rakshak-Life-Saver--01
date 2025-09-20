@@ -56,6 +56,7 @@ export default function Home() {
     type: string;
     reason: string;
     userInput: string;
+    firstAid?: string;
   } | null>(null);
 
   // Setup SpeechRecognition
@@ -123,7 +124,8 @@ export default function Home() {
       setEmergencyInfo({
         type: formState.data.emergencyType,
         reason: formState.message!,
-        userInput: formState.data.userInput
+        userInput: formState.data.userInput,
+        firstAid: formState.data.firstAid,
       });
       setMessages((prev) => [
         ...prev,
@@ -271,6 +273,7 @@ export default function Home() {
         <EmergencyDialog
           emergencyType={emergencyInfo.type}
           reason={emergencyInfo.reason}
+          firstAid={emergencyInfo.firstAid}
           onLocationFound={handleLocationFound}
           onClose={() => setEmergencyInfo(null)}
         />
