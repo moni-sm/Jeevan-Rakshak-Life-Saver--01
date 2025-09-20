@@ -3,7 +3,6 @@
 import { useActionState, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
-  Bot,
   LoaderCircle,
   Mic,
   MicOff,
@@ -291,7 +290,7 @@ export default function Home() {
           onLocationFound={handleLocationFound}
           onClose={() => {
             setEmergencyInfo(null);
-            formRef.current?.reset();
+            if(formRef.current) formRef.current.reset();
           }}
         />
       )}

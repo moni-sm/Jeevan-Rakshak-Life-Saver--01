@@ -42,17 +42,14 @@ export function EmergencyDialog({
   onLocationFound,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
-  const [isLocating, setIsLocating] = useState(false);
+  const [isLocating, setIsLocating] = useState(true);
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
 
 
   useEffect(() => {
-    // Automatically try to get location once when the dialog opens
-    if (!location && !isLocating && !locationError) {
-      handleGetLocation();
-    }
+    handleGetLocation();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -76,7 +73,7 @@ export function EmergencyDialog({
         setIsLocating(false);
       },
       () => {
-        setLocationError('Unable to retrieve your location. Please grant permission.');
+        setLocationError('Could not get your location. Please grant permission and try again.');
         setIsLocating(false);
       }
     );
@@ -160,11 +157,11 @@ export function EmergencyDialog({
                 <CardTitle className="flex items-center gap-2 text-base text-primary"><Hospital/> Nearby Hospitals</CardTitle>
             </CardHeader>
             <CardContent className='p-4 pt-0 space-y-4'>
-            {isLocating &&  !location && (
+            {(isLocating || isDispatching) && !location && (
               <div className="flex flex-col items-center justify-center gap-2 py-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-muted-foreground text-sm">
-                  Finding nearby hospitals...
+                  {isDispatching ? 'Requesting ambulance...' : 'Getting your location to find nearby hospitals...'}
                 </p>
               </div>
             )}
@@ -179,21 +176,32 @@ export function EmergencyDialog({
             {location && sortedHospitals.length > 0 && (
                 <>
                 <Button size="lg" className='w-full' onClick={() => handleAmbulanceClick()} disabled={isDispatching}>
-                    {isDispatching ? <LoaderCircle className="animate-spin" /> : <Ambulance/>}
-                    Request Ambulance from Nearest Hospital
+                    {isDispatching ? <LoaderCircle className="animate-spin" /> : <><Ambulance className='mr-2'/> Request Ambulance from Nearest Hospital</>}
                 </Button>
                  <div className='space-y-3 pt-2'>
                     {sortedHospitals.map((hospital) => (
                     <div key={hospital.name} className="rounded-lg border bg-background/50 p-3 space-y-1">
                         <h4 className='font-semibold'>{hospital.name}</h4>
                         <p className='text-sm text-muted-foreground'>{hospital.address}</p>
-                        <p className='text-sm text-muted-foreground flex items-center gap-2'><MapPin size={14}/> {hospital.distance}</p>
+                        <div className='flex items-center gap-4 pt-2 text-sm'>
+                            <div className='flex items-center gap-2'><MapPin size={14}/> {hospital.distance}</div>
+                            <div className='flex items-center gap-2'><Phone size={14}/> {hospital.phone}</div>
+                        </div>
                         <div className='flex items-center gap-2 pt-2'>
-                        <Button asChild variant="outline" size="sm">
-                            <a href={`tel:${hospital.phone}`}>
-                            <Phone size={16}/> Call
-                            </a>
-                        </Button>
+                          <Button asChild variant="outline" size="sm" className="flex-1">
+                              <a href={`tel:${hospital.phone}`}>
+                                <Phone size={16}/> Call Hospital
+                              </a>
+                          </Button>
+                          <Button 
+                            variant="secondary" 
+                            size="sm" 
+                            className="flex-1"
+                            onClick={() => handleAmbulanceClick(hospital)}
+                            disabled={isDispatching}
+                           >
+                            <Ambulance size={16}/> Send Ambulance
+                          </Button>
                         </div>
                     </div>
                     ))}
