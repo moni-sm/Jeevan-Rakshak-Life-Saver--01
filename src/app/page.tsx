@@ -13,7 +13,7 @@ import {
 import { submitUserMessage, type FormState } from '@/app/actions';
 import { AppHeader } from '@/components/app-header';
 import { AssistantMessage, UserMessage } from '@/components/chat-bubbles';
-import { EmergencyDialog } from '@/components/emergency-dialog';
+import { EmergencyDialog, Geolocation } from '@/components/emergency-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
@@ -38,14 +38,12 @@ const languages = [
 
 export default function Home() {
   const { toast } = useToast();
-  const [formState, formAction] = useActionState(submitUserMessage, initialState);
+  const [formState, formAction, isPending] = useActionState(submitUserMessage, initialState);
   const [messages, setMessages] = useState<
     { role: 'user' | 'assistant'; text: string; id: number }[]
   >([]);
   const [language, setLanguage] = useState('en');
   
-  const [isPending, startTransition] = useTransition();
-
   // Voice input state
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
@@ -57,6 +55,7 @@ export default function Home() {
   const [emergencyInfo, setEmergencyInfo] = useState<{
     type: string;
     reason: string;
+    userInput: string;
   } | null>(null);
 
   // Setup SpeechRecognition
@@ -104,7 +103,7 @@ export default function Home() {
 
   // Process form state changes
   useEffect(() => {
-    if (formState.status === 'idle') return;
+    if (formState.status === 'idle' || formState.status === 'emergency' && formState.data?.location) return;
 
     if (formState.status === 'success' && formState.data?.userInput) {
       setMessages((prev) => [
@@ -124,6 +123,7 @@ export default function Home() {
       setEmergencyInfo({
         type: formState.data.emergencyType,
         reason: formState.message!,
+        userInput: formState.data.userInput
       });
       setMessages((prev) => [
         ...prev,
@@ -141,7 +141,9 @@ export default function Home() {
       });
     }
 
-    formRef.current?.reset();
+    if(formState.status !== 'emergency') {
+      formRef.current?.reset();
+    }
   }, [formState, toast]);
 
   // Scroll to bottom of chat
@@ -159,6 +161,16 @@ export default function Home() {
       recognitionRef.current?.start();
     }
     setIsListening(!isListening);
+  };
+
+  const handleLocationFound = (location: Geolocation) => {
+    if (emergencyInfo) {
+      const formData = new FormData();
+      formData.append('message', emergencyInfo.userInput);
+      formData.append('language', language);
+      formData.append('location', `${location.latitude},${location.longitude}`);
+      formAction(formData);
+    }
   };
   
   const welcomeImage = PlaceHolderImages.find(p => p.id === 'rural-health-welcome');
@@ -214,9 +226,7 @@ export default function Home() {
         <div className="mx-auto max-w-3xl">
           <form
             ref={formRef}
-            action={(formData) => {
-              startTransition(() => formAction(formData));
-            }}
+            action={formAction}
             className="relative"
           >
             <input type="hidden" name="language" value={language} />
@@ -261,6 +271,7 @@ export default function Home() {
         <EmergencyDialog
           emergencyType={emergencyInfo.type}
           reason={emergencyInfo.reason}
+          onLocationFound={handleLocationFound}
           onClose={() => setEmergencyInfo(null)}
         />
       )}

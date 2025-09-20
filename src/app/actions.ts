@@ -9,6 +9,7 @@ export type FormState = {
   data?: {
     userInput: string;
     emergencyType?: string;
+    location?: string;
   };
 };
 
@@ -18,6 +19,7 @@ export async function submitUserMessage(
 ): Promise<FormState> {
   const userInput = formData.get('message') as string;
   const language = formData.get('language') as string;
+  const location = formData.get('location') as string | undefined;
 
   if (!userInput) {
     return { status: 'idle' };
@@ -25,7 +27,7 @@ export async function submitUserMessage(
 
   // 1. Check for emergency
   try {
-    const emergencyResult = await detectEmergency({ symptoms: userInput, language });
+    const emergencyResult = await detectEmergency({ symptoms: userInput, language, location });
     if (emergencyResult.isEmergency && emergencyResult.confidenceLevel > 0.6) {
       // Confidence threshold
       return {
@@ -34,6 +36,7 @@ export async function submitUserMessage(
         data: {
           userInput,
           emergencyType: emergencyResult.emergencyType || 'unspecified',
+          location: location
         },
       };
     }

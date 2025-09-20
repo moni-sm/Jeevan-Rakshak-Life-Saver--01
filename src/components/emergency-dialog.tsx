@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react';
 import { LoaderCircle, MapPin, Siren } from 'lucide-react';
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -14,21 +12,24 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
 
+export type Geolocation = {
+  latitude: number;
+  longitude: number;
+};
+
 type EmergencyDialogProps = {
   emergencyType: string;
   reason: string;
   onClose: () => void;
+  onLocationFound: (location: Geolocation) => void;
 };
 
-type Geolocation = {
-  latitude: number;
-  longitude: number;
-};
 
 export function EmergencyDialog({
   emergencyType,
   reason,
   onClose,
+  onLocationFound,
 }: EmergencyDialogProps) {
   const [step, setStep] = useState<'confirm' | 'locating' | 'notified'>('confirm');
   const [location, setLocation] = useState<Geolocation | null>(null);
@@ -44,10 +45,12 @@ export function EmergencyDialog({
 
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setLocation({
+        const newLocation = {
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        });
+        };
+        setLocation(newLocation);
+        onLocationFound(newLocation);
         setStep('notified');
       },
       () => {
@@ -109,7 +112,7 @@ export function EmergencyDialog({
               <p className="mt-2 text-sm text-destructive">{locationError}</p>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              Please remain calm. Help is on the way.
+              Please remain calm. Help is on the way. This is a simulation.
             </p>
           </div>
         )}
