@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
 import {
   LoaderCircle,
@@ -76,6 +76,7 @@ export default function Home() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const [isTransitioning, startTransition] = useTransition();
 
   const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo | null>(null);
 
@@ -184,7 +185,9 @@ export default function Home() {
       formData.append('message', emergencyInfo.userInput);
       formData.append('language', language);
       formData.append('location', `${location.latitude},${location.longitude}`);
-      formAction(formData);
+      startTransition(() => {
+        formAction(formData);
+      });
     }
   };
   
@@ -197,6 +200,8 @@ export default function Home() {
   }
 
   const welcomeImage = PlaceHolderImages.find(p => p.id === 'rural-health-welcome');
+
+  const isFormPending = isPending || isTransitioning;
 
   return (
     <div className="flex h-screen w-full flex-col bg-background">
@@ -283,8 +288,8 @@ export default function Home() {
                   <Mic />
                 )}
               </Button>
-              <Button type="submit" size="icon" aria-label="Send message" disabled={isPending}>
-                {isPending ? <LoaderCircle className="animate-spin" /> : <Send />}
+              <Button type="submit" size="icon" aria-label="Send message" disabled={isFormPending}>
+                {isFormPending ? <LoaderCircle className="animate-spin" /> : <Send />}
               </Button>
             </div>
           </form>
@@ -298,6 +303,7 @@ export default function Home() {
           firstAid={emergencyInfo.firstAid}
           hospitals={emergencyInfo.hospitals}
           onLocationFound={handleLocationFound}
+          isFindingHospitals={isTransitioning}
           onClose={() => {
             setEmergencyInfo(null);
             if(formRef.current) formRef.current.reset();

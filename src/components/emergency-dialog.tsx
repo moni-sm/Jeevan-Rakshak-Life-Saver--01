@@ -30,6 +30,7 @@ type EmergencyDialogProps = {
   hospitals?: EmergencyDetectionOutput['hospitals'];
   onClose: () => void;
   onLocationFound: (location: Geolocation) => void;
+  isFindingHospitals?: boolean;
 };
 
 
@@ -40,6 +41,7 @@ export function EmergencyDialog({
   hospitals,
   onClose,
   onLocationFound,
+  isFindingHospitals,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
   const [isLocating, setIsLocating] = useState(!hospitals);
@@ -47,39 +49,38 @@ export function EmergencyDialog({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
 
+  const handleGetLocation = () => {
+    setIsLocating(true);
+    setLocationError(null);
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.');
+      setIsLocating(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setLocation(newLocation);
+        onLocationFound(newLocation);
+        setIsLocating(false);
+      },
+      () => {
+        setLocationError('Could not get your location. Please grant permission and try again.');
+        setIsLocating(false);
+      }
+    );
+  };
   
   useEffect(() => {
-    const handleGetLocation = () => {
-      setIsLocating(true);
-      setLocationError(null);
-      if (!navigator.geolocation) {
-        setLocationError('Geolocation is not supported by your browser.');
-        setIsLocating(false);
-        return;
-      }
-  
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const newLocation = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          };
-          setLocation(newLocation);
-          onLocationFound(newLocation);
-          setIsLocating(false);
-        },
-        () => {
-          setLocationError('Could not get your location. Please grant permission and try again.');
-          setIsLocating(false);
-        }
-      );
-    };
-
-    if (!hospitals) {
+    if (!hospitals && !location && !isLocating) {
       handleGetLocation();
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hospitals]);
+  }, [hospitals, location, isLocating]);
   
   const sortedHospitals = useMemo(() => {
     if (!hospitals) return [];
@@ -109,7 +110,6 @@ export function EmergencyDialog({
             title: "Location required",
             description: "Cannot dispatch an ambulance without your location. Please enable location services.",
         });
-        // We don't call handleGetLocation here as the useEffect should handle retries if the user grants permission.
         return;
     }
     startDispatchTransition(async () => {
@@ -130,23 +130,7 @@ export function EmergencyDialog({
   }
 
   const handleRetryLocation = () => {
-    setIsLocating(true);
-    setLocationError(null);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setLocation(newLocation);
-        onLocationFound(newLocation);
-        setIsLocating(false);
-      },
-      () => {
-        setLocationError('Could not get your location. Please grant permission and try again.');
-        setIsLocating(false);
-      }
-    );
+    handleGetLocation();
   };
 
   return (
@@ -183,7 +167,7 @@ export function EmergencyDialog({
               <div className="flex flex-col items-center justify-center gap-2 py-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-muted-foreground text-sm">
-                  Getting your location to find nearby hospitals...
+                  Getting your location...
                 </p>
               </div>
             )}
@@ -230,7 +214,7 @@ export function EmergencyDialog({
                 </div>
               </>
             )}
-             {location && !isLocating && !hospitals && (
+             {location && !isLocating && isFindingHospitals && (
                 <div className="flex flex-col items-center justify-center gap-2 py-4">
                     <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                     <p className="text-muted-foreground text-sm">
@@ -238,7 +222,7 @@ export function EmergencyDialog({
                     </p>
                 </div>
              )}
-             {location && !isLocating && hospitals && hospitals.length === 0 && (
+             {location && !isLocating && !isFindingHospitals && hospitals && hospitals.length === 0 && (
                 <p className='text-sm text-muted-foreground text-center py-4'>No hospitals found nearby.</p>
              )}
             </CardContent>
