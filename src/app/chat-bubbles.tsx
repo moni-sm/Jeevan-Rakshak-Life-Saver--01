@@ -1,6 +1,6 @@
-import { Bot, User } from 'lucide-react';
+import { Bot, User as UserIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
-import type { User as FirebaseUser } from 'firebase/auth';
+import type { User } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ export function UserMessage({
   user,
 }: {
   children: ReactNode;
-  user: FirebaseUser | null;
+  user: User | null;
 }) {
   return (
     <div className="flex items-start justify-end gap-3">
@@ -23,7 +23,7 @@ export function UserMessage({
           alt={user?.displayName ?? 'User'}
         />
         <AvatarFallback className="bg-transparent text-primary">
-          <User />
+          <UserIcon />
         </AvatarFallback>
       </Avatar>
     </div>

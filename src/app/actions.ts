@@ -2,9 +2,11 @@
 
 import { detectEmergency, EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 import { multilingualHealthQA } from '@/ai/flows/multilingual-health-qa';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { addDoc, collection, serverTimestamp, getFirestore } from 'firebase/firestore';
+import { app } from '@/lib/firebase';
 import { Geolocation } from '@/components/emergency-dialog';
+
+const db = getFirestore(app);
 
 export type Message = {
   id: string;
@@ -33,6 +35,8 @@ export async function submitUserMessage(
   const userInput = formData.get('message') as string;
   const language = formData.get('language') as string;
   const location = formData.get('location') as string | undefined;
+  const userId = formData.get('userId') as string | undefined;
+
 
   if (!userInput) {
     return { status: 'idle' };
@@ -44,6 +48,19 @@ export async function submitUserMessage(
     text: userInput,
     createdAt: new Date(),
   };
+
+  if (userId) {
+    try {
+      const userMessagesRef = collection(db, 'users', userId, 'messages');
+      await addDoc(userMessagesRef, {
+        role: 'user',
+        text: userInput,
+        createdAt: serverTimestamp(),
+      });
+    } catch (error) {
+      console.error("Failed to save user message:", error);
+    }
+  }
 
   // 1. Check for emergency
   try {
@@ -80,6 +97,20 @@ export async function submitUserMessage(
         text: qaResult.answer,
         createdAt: new Date(),
     };
+    
+    if (userId) {
+      try {
+        const userMessagesRef = collection(db, 'users', userId, 'messages');
+        await addDoc(userMessagesRef, {
+          role: 'assistant',
+          text: qaResult.answer,
+          createdAt: serverTimestamp(),
+        });
+      } catch (error) {
+        console.error("Failed to save assistant message:", error);
+      }
+    }
+
 
     return {
       status: 'success',
@@ -108,7 +139,7 @@ export async function submitUserMessage(
   }
 }
 
-export async function dispatchAmbulance(hospital: any, location: Geolocation) {
+export async function dispatchAmbulance(hospital: any, location: Geolocation, userId: string | null) {
     if (!hospital || !location) {
         return { success: false, error: 'Missing hospital or location data.' };
     }
@@ -119,7 +150,7 @@ export async function dispatchAmbulance(hospital: any, location: Geolocation) {
             hospitalName: hospital.name,
             hospitalAddress: hospital.address,
             userLocation: location,
-            userId: 'anonymous',
+            userId: userId || 'anonymous',
             status: 'pending',
             createdAt: serverTimestamp(),
         });

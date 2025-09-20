@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition, useMemo } from 'react';
 import { Ambulance, HeartPulse, Hospital, LoaderCircle, MapPin, Phone, Siren } from 'lucide-react';
+import { User } from 'firebase/auth';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -15,6 +16,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 import { dispatchAmbulance } from '@/app/actions';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { useAuth } from '@/hooks/use-auth';
 
 export type Geolocation = {
   latitude: number;
@@ -46,6 +48,8 @@ export function EmergencyDialog({
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
+  const user = useAuth();
+
 
   useEffect(() => {
     // Automatically try to get location once when the dialog opens
@@ -113,7 +117,7 @@ export function EmergencyDialog({
         return;
     }
     startDispatchTransition(async () => {
-        const result = await dispatchAmbulance(targetHospital, location);
+        const result = await dispatchAmbulance(targetHospital, location, user?.uid || null);
         if (result.success) {
             toast({
                 title: "Ambulance Dispatched (Simulation)",

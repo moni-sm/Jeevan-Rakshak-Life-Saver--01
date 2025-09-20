@@ -9,15 +9,19 @@ import {
   MicOff,
   Send,
 } from 'lucide-react';
+import { onAuthStateChanged, type User } from 'firebase/auth';
 import { submitUserMessage, type FormState, type Message } from '@/app/actions';
 import { AppHeader } from '@/components/app-header';
-import { AssistantMessage, UserMessage } from '@/components/chat-bubbles';
+import { AssistantMessage, UserMessage } from '@/app/chat-bubbles';
 import { EmergencyDialog, Geolocation } from '@/components/emergency-dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
+import { auth } from '@/lib/firebase';
+import { AuthDialog } from '@/components/auth-dialog';
+
 
 declare global {
   interface Window {
@@ -78,6 +82,18 @@ export default function Home() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authDialogOpen, setAuthDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      if (currentUser) {
+        setAuthDialogOpen(false);
+      }
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -195,6 +211,8 @@ export default function Home() {
         language={language}
         onLanguageChange={setLanguage}
         languages={languages}
+        user={user}
+        onSignIn={() => setAuthDialogOpen(true)}
       />
 
       <main
@@ -226,7 +244,7 @@ export default function Home() {
           ) : (
             messages.map((msg) =>
               msg.role === 'user' ? (
-                <UserMessage key={msg.id}>{msg.text}</UserMessage>
+                <UserMessage key={msg.id} user={user}>{msg.text}</UserMessage>
               ) : (
                 <AssistantMessage key={msg.id}>{msg.text}</AssistantMessage>
               )
@@ -244,6 +262,7 @@ export default function Home() {
             className="relative"
           >
             <input type="hidden" name="language" value={language} />
+            {user && <input type="hidden" name="userId" value={user.uid} />}
             <Textarea
               ref={textareaRef}
               name="message"
@@ -294,6 +313,7 @@ export default function Home() {
           }}
         />
       )}
+       <AuthDialog open={authDialogOpen} onOpenChange={setAuthDialogOpen} />
     </div>
   );
 }
