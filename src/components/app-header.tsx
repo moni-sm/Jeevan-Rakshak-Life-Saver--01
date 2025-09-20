@@ -1,6 +1,6 @@
 'use client';
 
-import { Languages } from 'lucide-react';
+import { Languages, Siren } from 'lucide-react';
 import { Logo } from '@/components/icons';
 import {
   Select,
@@ -9,17 +9,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Button } from './ui/button';
 
 type AppHeaderProps = {
   language: string;
   onLanguageChange: (lang: string) => void;
   languages: { value: string; label: string }[];
+  onReportEmergency: () => void;
 };
 
 export function AppHeader({
   language,
   onLanguageChange,
   languages,
+  onReportEmergency,
 }: AppHeaderProps) {
 
   return (
@@ -31,6 +34,9 @@ export function AppHeader({
         </h1>
       </div>
       <div className="flex items-center gap-4">
+        <Button variant="destructive" onClick={onReportEmergency}>
+          <Siren className="mr-2 h-4 w-4" /> Report Emergency
+        </Button>
         <div className="flex items-center gap-2">
           <Languages className="h-5 w-5 text-muted-foreground" />
           <Select value={language} onValueChange={onLanguageChange}>

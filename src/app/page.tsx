@@ -187,6 +187,14 @@ export default function Home() {
     }
   };
   
+  const handleReportEmergency = () => {
+    setEmergencyInfo({
+      type: 'Manual Emergency Report',
+      reason: 'Emergency button clicked by user.',
+      userInput: 'User reported an emergency via button.',
+    });
+  }
+
   const welcomeImage = PlaceHolderImages.find(p => p.id === 'rural-health-welcome');
 
   return (
@@ -195,6 +203,7 @@ export default function Home() {
         language={language}
         onLanguageChange={setLanguage}
         languages={languages}
+        onReportEmergency={handleReportEmergency}
       />
 
       <main
