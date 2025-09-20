@@ -68,4 +68,6 @@ To run this project locally, follow these steps:
     npm run genkit:dev
     ```
 
-Open [http://localhost:9002](http://localhost:9002) in your browser to see the application running.
+Open [(https://jeevan-rakshak-life-saver-01.vercel.app/)) in your browser to see the application running.
+
+
