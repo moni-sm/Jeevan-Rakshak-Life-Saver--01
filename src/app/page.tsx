@@ -178,7 +178,7 @@ export default function Home() {
   };
 
   const handleLocationFound = (location: Geolocation) => {
-    if (emergencyInfo) {
+    if (emergencyInfo && !emergencyInfo.hospitals) {
       const formData = new FormData();
       formData.append('message', emergencyInfo.userInput);
       formData.append('language', language);

@@ -42,16 +42,11 @@ export function EmergencyDialog({
   onLocationFound,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
-  const [isLocating, setIsLocating] = useState(true);
+  const [isLocating, setIsLocating] = useState(!hospitals);
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
 
-
-  useEffect(() => {
-    handleGetLocation();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const handleGetLocation = () => {
     setIsLocating(true);
@@ -78,6 +73,11 @@ export function EmergencyDialog({
       }
     );
   };
+
+  useEffect(() => {
+    handleGetLocation();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const sortedHospitals = useMemo(() => {
     if (!hospitals) return [];
@@ -157,23 +157,23 @@ export function EmergencyDialog({
                 <CardTitle className="flex items-center gap-2 text-base text-primary"><Hospital/> Nearby Hospitals</CardTitle>
             </CardHeader>
             <CardContent className='p-4 pt-0 space-y-4'>
-            {(isLocating || isDispatching) && !location && (
+            {isLocating && (
               <div className="flex flex-col items-center justify-center gap-2 py-4">
                 <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
                 <p className="text-muted-foreground text-sm">
-                  {isDispatching ? 'Requesting ambulance...' : 'Getting your location to find nearby hospitals...'}
+                  Getting your location to find nearby hospitals...
                 </p>
               </div>
             )}
 
-            {locationError && (
+            {locationError && !isLocating &&(
              <div className="text-center py-2">
                 <p className="text-sm text-destructive">{locationError}</p>
                 <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleGetLocation}>Try again</Button>
              </div>
             )}
 
-            {location && sortedHospitals.length > 0 && (
+            {sortedHospitals.length > 0 && (
                 <>
                 <Button size="lg" className='w-full' onClick={() => handleAmbulanceClick()} disabled={isDispatching}>
                     {isDispatching ? <LoaderCircle className="animate-spin" /> : <><Ambulance className='mr-2'/> Request Ambulance from Nearest Hospital</>}
@@ -190,7 +190,7 @@ export function EmergencyDialog({
                         <div className='flex items-center gap-2 pt-2'>
                           <Button asChild variant="outline" size="sm" className="flex-1">
                               <a href={`tel:${hospital.phone}`}>
-                                <Phone size={16}/> Call Hospital
+                                <Phone size={16} className="mr-2"/> Call Hospital
                               </a>
                           </Button>
                           <Button 
@@ -200,7 +200,7 @@ export function EmergencyDialog({
                             onClick={() => handleAmbulanceClick(hospital)}
                             disabled={isDispatching}
                            >
-                            <Ambulance size={16}/> Send Ambulance
+                            <Ambulance size={16} className="mr-2"/> Send Ambulance
                           </Button>
                         </div>
                     </div>
@@ -208,7 +208,15 @@ export function EmergencyDialog({
                 </div>
               </>
             )}
-             {location && (!hospitals || hospitals.length === 0) && !isLocating && (
+             {location && !isLocating && !hospitals && (
+                <div className="flex flex-col items-center justify-center gap-2 py-4">
+                    <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-muted-foreground text-sm">
+                        Finding hospitals...
+                    </p>
+                </div>
+             )}
+             {location && !isLocating && hospitals && hospitals.length === 0 && (
                 <p className='text-sm text-muted-foreground text-center py-4'>No hospitals found nearby.</p>
              )}
             </CardContent>
