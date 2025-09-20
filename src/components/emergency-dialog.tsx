@@ -14,7 +14,6 @@ import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 import { dispatchAmbulance } from '@/app/actions';
-import { useAuth } from '@/hooks/use-auth';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export type Geolocation = {
@@ -43,7 +42,6 @@ export function EmergencyDialog({
   onLocationFound,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
-  const { user } = useAuth();
   const [isLocating, setIsLocating] = useState(false);
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -115,7 +113,7 @@ export function EmergencyDialog({
         return;
     }
     startDispatchTransition(async () => {
-        const result = await dispatchAmbulance(targetHospital, location, user?.uid ?? null);
+        const result = await dispatchAmbulance(targetHospital, location);
         if (result.success) {
             toast({
                 title: "Ambulance Dispatched (Simulation)",

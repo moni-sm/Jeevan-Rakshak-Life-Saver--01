@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { AuthButton } from './auth-button';
 
 type AppHeaderProps = {
   language: string;
@@ -46,7 +45,6 @@ export function AppHeader({
             </SelectContent>
           </Select>
         </div>
-        <AuthButton />
       </div>
     </header>
   );

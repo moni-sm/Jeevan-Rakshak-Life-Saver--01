@@ -1,10 +1,14 @@
 import { Bot, User } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
-export function UserMessage({ children }: { children: ReactNode }) {
+export function UserMessage({
+  children,
+}: {
+  children: ReactNode;
+}) {
   return (
     <div className="flex items-start justify-end gap-3">
       <Card className="max-w-[85%] bg-primary text-primary-foreground">

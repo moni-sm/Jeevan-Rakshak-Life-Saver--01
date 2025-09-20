@@ -33,7 +33,6 @@ export async function submitUserMessage(
   const userInput = formData.get('message') as string;
   const language = formData.get('language') as string;
   const location = formData.get('location') as string | undefined;
-  const userId = formData.get('userId') as string | null;
 
   if (!userInput) {
     return { status: 'idle' };
@@ -81,24 +80,6 @@ export async function submitUserMessage(
         text: qaResult.answer,
         createdAt: new Date(),
     };
-    
-    // Save to Firestore if user is logged in
-    if (userId) {
-        try {
-            const chatHistoryRef = collection(db, 'users', userId, 'chats');
-            await addDoc(chatHistoryRef, {
-                messages: [
-                    { role: 'user', text: userInput, createdAt: serverTimestamp() },
-                    { role: 'assistant', text: qaResult.answer, createdAt: serverTimestamp() }
-                ],
-                createdAt: serverTimestamp()
-            });
-        } catch (error) {
-            console.error("Failed to save chat history:", error);
-            // Don't block the user response for this
-        }
-    }
-
 
     return {
       status: 'success',
@@ -127,7 +108,7 @@ export async function submitUserMessage(
   }
 }
 
-export async function dispatchAmbulance(hospital: any, location: Geolocation, userId: string | null) {
+export async function dispatchAmbulance(hospital: any, location: Geolocation) {
     if (!hospital || !location) {
         return { success: false, error: 'Missing hospital or location data.' };
     }
@@ -138,7 +119,7 @@ export async function dispatchAmbulance(hospital: any, location: Geolocation, us
             hospitalName: hospital.name,
             hospitalAddress: hospital.address,
             userLocation: location,
-            userId: userId || 'anonymous',
+            userId: 'anonymous',
             status: 'pending',
             createdAt: serverTimestamp(),
         });

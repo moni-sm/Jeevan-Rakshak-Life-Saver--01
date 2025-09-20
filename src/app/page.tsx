@@ -18,9 +18,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
-import { AuthProvider, useAuth } from '@/hooks/use-auth';
-import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 
 declare global {
   interface Window {
@@ -37,17 +34,26 @@ const languages = [
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'हिंदी (Hindi)' },
   { value: 'bn', label: 'বাংলা (Bengali)' },
-  { value: 'mr', label: 'मराठी (Marathi)' },
   { value: 'te', label: 'తెలుగు (Telugu)' },
+  { value: 'mr', label: 'मराठी (Marathi)' },
   { value: 'ta', label: 'தமிழ் (Tamil)' },
+  { value: 'ur', label: 'اردو (Urdu)' },
   { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
   { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
-  { value: 'ml', label: 'മലയാളം (Malayalam)' },
-  { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
-  { value: 'ur', label: 'اردو (Urdu)' },
-  { value: 'as', label: 'অসমীয়া (Assamese)' },
   { value: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+  { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { value: 'ml', label: 'മലയാളം (Malayalam)' },
+  { value: 'as', label: 'অসমীয়া (Assamese)' },
+  { value: 'bho', label: 'भोजपुरी (Bhojpuri)' },
+  { value: 'gom', label: 'कोंकणी (Konkani)' },
+  { value: 'doi', label: 'डोगरी (Dogri)' },
+  { value: 'ks', label: 'کٲشُر (Kashmiri)' },
+  { value: 'mai', label: 'मैथिली (Maithili)' },
+  { value: 'mni', label: 'ꯃꯤꯇꯩꯂꯣꯟ (Meitei)' },
   { value: 'ne', label: 'नेपाली (Nepali)' },
+  { value: 'sa', label: 'संस्कृतम् (Sanskrit)' },
+  { value: 'sat', label: 'ᱥᱟᱱᱛᱟᱲᱤ (Santali)' },
+  { value: 'sd', label: 'सिन्धी (Sindhi)' },
 ];
 
 
@@ -59,8 +65,7 @@ type EmergencyInfo = {
   hospitals?: EmergencyDetectionOutput['hospitals'];
 }
 
-function HomePageContent() {
-  const { user, loading: authLoading } = useAuth();
+export default function Home() {
   const { toast } = useToast();
   const [formState, formAction, isPending] = useActionState(submitUserMessage, initialState);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -73,34 +78,6 @@ function HomePageContent() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo | null>(null);
-
-  // Fetch chat history
-  useEffect(() => {
-    if (!user) {
-      setMessages([]); // Clear messages on sign out
-      return;
-    };
-
-    const q = query(collection(db, 'users', user.uid, 'chats'), orderBy('createdAt', 'desc'), limit(1));
-    
-    const unsubscribe = onSnapshot(q, (querySnapshot) => {
-      if (querySnapshot.empty) {
-        setMessages([]);
-        return;
-      }
-      const latestChat = querySnapshot.docs[0].data();
-      const chatMessages = (latestChat.messages || []).map((msg: any) => ({
-        ...msg,
-        id: crypto.randomUUID(),
-        createdAt: msg.createdAt?.toDate() || new Date()
-      }));
-      setMessages(chatMessages);
-    }, (error) => {
-      console.error("Error fetching chat history: ", error);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -206,7 +183,6 @@ function HomePageContent() {
       formData.append('message', emergencyInfo.userInput);
       formData.append('language', language);
       formData.append('location', `${location.latitude},${location.longitude}`);
-      if (user) formData.append('userId', user.uid);
       formAction(formData);
     }
   };
@@ -226,7 +202,7 @@ function HomePageContent() {
         className="flex-1 overflow-y-auto p-4 md:p-6"
       >
         <div className="mx-auto max-w-3xl space-y-6">
-          {messages.length === 0 && !authLoading ? (
+          {messages.length === 0 ? (
              <div className="flex flex-col items-center justify-center pt-10 text-center">
               {welcomeImage && <Image 
                 src={welcomeImage.imageUrl}
@@ -244,16 +220,13 @@ function HomePageContent() {
                 Your trusted health assistant.
               </p>
               <p className="mt-4 max-w-xl">
-                {user ? `Welcome back, ${user.displayName || 'User'}!` : "Sign in to save your chat history."}
-              </p>
-              <p className="mt-4 max-w-xl">
                 Describe your symptoms or ask a health question in your language. I can help with general health queries and detect potential emergencies.
               </p>
             </div>
           ) : (
             messages.map((msg) =>
               msg.role === 'user' ? (
-                <UserMessage key={msg.id} user={user}>{msg.text}</UserMessage>
+                <UserMessage key={msg.id}>{msg.text}</UserMessage>
               ) : (
                 <AssistantMessage key={msg.id}>{msg.text}</AssistantMessage>
               )
@@ -271,7 +244,6 @@ function HomePageContent() {
             className="relative"
           >
             <input type="hidden" name="language" value={language} />
-            {user && <input type="hidden" name="userId" value={user.uid} />}
             <Textarea
               ref={textareaRef}
               name="message"
@@ -324,12 +296,4 @@ function HomePageContent() {
       )}
     </div>
   );
-}
-
-export default function Home() {
-    return (
-        <AuthProvider>
-            <HomePageContent />
-        </AuthProvider>
-    )
 }
