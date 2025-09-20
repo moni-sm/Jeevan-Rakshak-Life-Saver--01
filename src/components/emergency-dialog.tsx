@@ -114,7 +114,7 @@ export function EmergencyDialog({
         const result = await dispatchAmbulance(targetHospital, location);
         if (result.success) {
             toast({
-                title: "Ambulance Dispatched (Simulation)",
+                title: "Ambulance Dispatched",
                 description: `An ambulance has been requested from ${targetHospital.name}. Help is on the way.`,
             });
         } else {
@@ -225,7 +225,7 @@ export function EmergencyDialog({
 
         <div className="mt-2 rounded-lg border bg-secondary/50 p-4">
             <p className="text-xs text-muted-foreground">
-            This is a simulation. In a real emergency, please call your local emergency services directly.
+            This is a real-time system. Dispatching an ambulance will create a request in our system. Only use in a genuine emergency.
           </p>
         </div>
 
