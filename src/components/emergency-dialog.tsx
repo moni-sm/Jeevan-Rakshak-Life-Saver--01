@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 import { Ambulance, HeartPulse, Hospital, LoaderCircle, MapPin, Phone, Siren } from 'lucide-react';
 import {
   AlertDialog,
@@ -13,6 +13,8 @@ import {
 import { Button } from './ui/button';
 import { useToast } from '@/hooks/use-toast';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
+import { dispatchAmbulance } from '@/app/actions';
+import { useAuth } from '@/hooks/use-auth';
 
 export type Geolocation = {
   latitude: number;
@@ -21,7 +23,7 @@ export type Geolocation = {
 
 type EmergencyDialogProps = {
   emergencyType: string;
-  reason: string;
+  reason:string;
   firstAid?: string;
   hospitals?: EmergencyDetectionOutput['hospitals'];
   onClose: () => void;
@@ -38,14 +40,19 @@ export function EmergencyDialog({
   onLocationFound,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isLocating, setIsLocating] = useState(false);
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const hasRequestedLocation =_hasRequestedLocation();
+  const [isDispatching, startDispatchTransition] = useTransition();
 
-  function _hasRequestedLocation(){
-    return isLocating || location || locationError;
-  }
+  useEffect(() => {
+    // Automatically try to get location once when the dialog opens
+    if (!location && !isLocating && !locationError) {
+      handleGetLocation();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleGetLocation = () => {
     setIsLocating(true);
@@ -68,24 +75,36 @@ export function EmergencyDialog({
       },
       () => {
         setLocationError('Unable to retrieve your location. Please grant permission.');
-        setIsLocating(false); 
+        setIsLocating(false);
       }
     );
   };
 
-  const handleAmbulanceClick = (hospitalName: string) => {
-    toast({
-      title: "Ambulance Dispatched (Simulation)",
-      description: `An ambulance has been requested from ${hospitalName}. Help is on the way.`,
-    })
-  }
-  
-  useEffect(() => {
-    if (!hasRequestedLocation) {
-        handleGetLocation();
+  const handleAmbulanceClick = (hospital: any) => {
+    if (!location) {
+        toast({
+            variant: 'destructive',
+            title: "Location required",
+            description: "Cannot dispatch an ambulance without your location.",
+        });
+        return;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasRequestedLocation]);
+    startDispatchTransition(async () => {
+        const result = await dispatchAmbulance(hospital, location, user?.uid ?? null);
+        if (result.success) {
+            toast({
+                title: "Ambulance Dispatched (Simulation)",
+                description: `An ambulance has been requested from ${hospital.name}. Help is on the way.`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: "Dispatch Failed",
+                description: result.error,
+            });
+        }
+    });
+  }
 
   return (
     <AlertDialog open onOpenChange={onClose}>
@@ -113,7 +132,7 @@ export function EmergencyDialog({
         {(isLocating || (location && hospitals && hospitals.length > 0)) && (
            <div className="mt-4 space-y-4">
            <h3 className="font-bold text-primary flex items-center gap-2"><Hospital/> Nearby Hospitals</h3>
-            {isLocating &&  (
+            {isLocating &&  !location && (
               <div className="flex flex-col items-center justify-center gap-4 py-8">
                 <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
                 <p className="text-muted-foreground">
@@ -134,14 +153,18 @@ export function EmergencyDialog({
                           <Phone size={16}/> Call Now
                         </a>
                       </Button>
-                      <Button size="sm" onClick={() => handleAmbulanceClick(hospital.name)}>
-                        <Ambulance size={16}/> Send Ambulance
+                      <Button size="sm" onClick={() => handleAmbulanceClick(hospital)} disabled={isDispatching || !location}>
+                        {isDispatching ? <LoaderCircle className="animate-spin" /> : <Ambulance size={16}/>}
+                        Send Ambulance
                       </Button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
+             {location && (!hospitals || hospitals.length === 0) && !isLocating && (
+                <p className='text-sm text-muted-foreground text-center py-4'>No hospitals found nearby.</p>
+             )}
           </div>
         )}
 
@@ -157,7 +180,10 @@ export function EmergencyDialog({
             </div>
           )}
           {locationError && (
-            <p className="mt-2 text-sm text-destructive">{locationError}</p>
+             <div className="mt-2">
+                <p className="text-sm text-destructive">{locationError}</p>
+                <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleGetLocation}>Try again</Button>
+             </div>
           )}
             <p className="mt-3 text-xs text-muted-foreground">
             This is a simulation. In a real emergency, please call your local emergency services directly.

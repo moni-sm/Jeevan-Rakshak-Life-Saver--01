@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { AuthButton } from './auth-button';
 
 type AppHeaderProps = {
   language: string;
@@ -29,20 +30,23 @@ export function AppHeader({
           Gaon Swasthya Sahayak
         </h1>
       </div>
-      <div className="flex items-center gap-2">
-        <Languages className="h-5 w-5 text-muted-foreground" />
-        <Select value={language} onValueChange={onLanguageChange}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Language" />
-          </SelectTrigger>
-          <SelectContent>
-            {languages.map((lang) => (
-              <SelectItem key={lang.value} value={lang.value}>
-                {lang.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Languages className="h-5 w-5 text-muted-foreground" />
+          <Select value={language} onValueChange={onLanguageChange}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Language" />
+            </SelectTrigger>
+            <SelectContent>
+              {languages.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <AuthButton />
       </div>
     </header>
   );

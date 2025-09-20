@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
+import { useActionState, useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import {
   Bot,
@@ -8,9 +8,8 @@ import {
   Mic,
   MicOff,
   Send,
-  User,
 } from 'lucide-react';
-import { submitUserMessage, type FormState } from '@/app/actions';
+import { submitUserMessage, type FormState, type Message } from '@/app/actions';
 import { AppHeader } from '@/components/app-header';
 import { AssistantMessage, UserMessage } from '@/components/chat-bubbles';
 import { EmergencyDialog, Geolocation } from '@/components/emergency-dialog';
@@ -19,6 +18,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
+import { AuthProvider, useAuth } from '@/hooks/use-auth';
+import { collection, query, orderBy, onSnapshot, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 declare global {
   interface Window {
@@ -45,25 +47,49 @@ type EmergencyInfo = {
   hospitals?: EmergencyDetectionOutput['hospitals'];
 }
 
-export default function Home() {
+function HomePageContent() {
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [formState, formAction, isPending] = useActionState(submitUserMessage, initialState);
-  const [messages, setMessages] = useState<
-    { role: 'user' | 'assistant'; text: string; id: number }[]
-  >([]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [language, setLanguage] = useState('en');
   
-  // Voice input state
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  // Emergency flow state
   const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo | null>(null);
 
-  // Setup SpeechRecognition
+  // Fetch chat history
+  useEffect(() => {
+    if (!user) {
+      setMessages([]); // Clear messages on sign out
+      return;
+    };
+
+    const q = query(collection(db, 'users', user.uid, 'chats'), orderBy('createdAt', 'desc'), limit(1));
+    
+    const unsubscribe = onSnapshot(q, (querySnapshot) => {
+      if (querySnapshot.empty) {
+        setMessages([]);
+        return;
+      }
+      const latestChat = querySnapshot.docs[0].data();
+      const chatMessages = (latestChat.messages || []).map((msg: any) => ({
+        ...msg,
+        id: crypto.randomUUID(),
+        createdAt: msg.createdAt?.toDate() || new Date()
+      }));
+      setMessages(chatMessages);
+    }, (error) => {
+      console.error("Error fetching chat history: ", error);
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const SpeechRecognition =
@@ -106,58 +132,39 @@ export default function Home() {
     recognitionRef.current = recognition;
   }, [language]);
 
-  // Process form state changes
   useEffect(() => {
     if (formState.status === 'idle') return;
 
-    if (formState.status === 'success' && formState.data?.userInput) {
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'user',
-          text: formState.data.userInput,
-          id: Date.now(),
-        },
-        {
-          role: 'assistant',
-          text: formState.message!,
-          id: Date.now() + 1,
-        },
-      ]);
-       if(formRef.current) formRef.current.reset();
-    } else if (formState.status === 'emergency' && formState.data?.emergencyType) {
-      const isLocationUpdate = formState.data.location && emergencyInfo;
-      const currentEmergencyInfo = isLocationUpdate ? emergencyInfo : {
-        type: formState.data.emergencyType,
-        reason: formState.message!,
-        userInput: formState.data.userInput,
-      };
-
-      const updatedEmergencyInfo: EmergencyInfo = {
-        ...currentEmergencyInfo,
-        firstAid: formState.data.firstAid || currentEmergencyInfo.firstAid,
-        hospitals: formState.data.hospitals || (isLocationUpdate ? emergencyInfo.hospitals : undefined),
-      };
-
-      setEmergencyInfo(updatedEmergencyInfo);
-      
-      if (!isLocationUpdate) {
-        setMessages((prev) => [
-          ...prev,
-          {
-            role: 'user',
-            text: formState.data!.userInput,
-            id: Date.now(),
-          },
-        ]);
+    if (formState.status === 'success' || formState.status === 'error') {
+      if (formState.messages) {
+        setMessages(prev => [...prev, ...formState.messages!]);
       }
+      if(formRef.current) formRef.current.reset();
+    } else if (formState.status === 'emergency' && formState.data?.emergencyType) {
+        const isLocationUpdate = formState.data.location && emergencyInfo;
+        const currentEmergencyInfo = isLocationUpdate ? emergencyInfo : {
+          type: formState.data.emergencyType,
+          reason: formState.message!,
+          userInput: formState.data.userInput,
+        };
+
+        const updatedEmergencyInfo: EmergencyInfo = {
+          ...currentEmergencyInfo,
+          firstAid: formState.data.firstAid || currentEmergencyInfo.firstAid,
+          hospitals: formState.data.hospitals || (isLocationUpdate ? emergencyInfo.hospitals : undefined),
+        };
+        
+        setEmergencyInfo(updatedEmergencyInfo);
+      
+        if (!isLocationUpdate && formState.messages) {
+            setMessages((prev) => [...prev, ...formState.messages!]);
+        }
     } else if (formState.status === 'error') {
       toast({
         variant: 'destructive',
         title: 'An error occurred',
         description: formState.message,
       });
-      if(formRef.current) formRef.current.reset();
     }
 
     if(formState.status !== 'emergency') {
@@ -165,7 +172,6 @@ export default function Home() {
     }
   }, [formState, toast, emergencyInfo]);
 
-  // Scroll to bottom of chat
   useEffect(() => {
     chatContainerRef.current?.scrollTo({
       top: chatContainerRef.current.scrollHeight,
@@ -188,6 +194,7 @@ export default function Home() {
       formData.append('message', emergencyInfo.userInput);
       formData.append('language', language);
       formData.append('location', `${location.latitude},${location.longitude}`);
+      if (user) formData.append('userId', user.uid);
       formAction(formData);
     }
   };
@@ -207,7 +214,7 @@ export default function Home() {
         className="flex-1 overflow-y-auto p-4 md:p-6"
       >
         <div className="mx-auto max-w-3xl space-y-6">
-          {messages.length === 0 ? (
+          {messages.length === 0 && !authLoading ? (
              <div className="flex flex-col items-center justify-center pt-10 text-center">
               {welcomeImage && <Image 
                 src={welcomeImage.imageUrl}
@@ -223,6 +230,9 @@ export default function Home() {
               </h1>
               <p className="mt-2 text-lg text-muted-foreground">
                 Your trusted health assistant.
+              </p>
+              <p className="mt-4 max-w-xl">
+                {user ? `Welcome back, ${user.displayName || 'User'}!` : "Sign in to save your chat history."}
               </p>
               <p className="mt-4 max-w-xl">
                 Describe your symptoms or ask a health question in your language. I can help with general health queries and detect potential emergencies.
@@ -249,6 +259,7 @@ export default function Home() {
             className="relative"
           >
             <input type="hidden" name="language" value={language} />
+            {user && <input type="hidden" name="userId" value={user.uid} />}
             <Textarea
               ref={textareaRef}
               name="message"
@@ -301,4 +312,12 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+export default function Home() {
+    return (
+        <AuthProvider>
+            <HomePageContent />
+        </AuthProvider>
+    )
 }
