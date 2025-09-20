@@ -1,7 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useTransition } from 'react';
-import { useFormState } from 'react-dom';
+import { useActionState, useEffect, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
 import {
   Bot,
@@ -39,7 +38,7 @@ const languages = [
 
 export default function Home() {
   const { toast } = useToast();
-  const [formState, formAction] = useFormState(submitUserMessage, initialState);
+  const [formState, formAction] = useActionState(submitUserMessage, initialState);
   const [messages, setMessages] = useState<
     { role: 'user' | 'assistant'; text: string; id: number }[]
   >([]);
