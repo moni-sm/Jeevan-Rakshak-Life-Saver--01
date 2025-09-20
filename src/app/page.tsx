@@ -253,7 +253,7 @@ function HomePageContent() {
           ) : (
             messages.map((msg) =>
               msg.role === 'user' ? (
-                <UserMessage key={msg.id}>{msg.text}</UserMessage>
+                <UserMessage key={msg.id} user={user}>{msg.text}</UserMessage>
               ) : (
                 <AssistantMessage key={msg.id}>{msg.text}</AssistantMessage>
               )

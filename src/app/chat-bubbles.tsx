@@ -1,21 +1,29 @@
 import { Bot, User } from 'lucide-react';
 import type { ReactNode } from 'react';
+import type { User as FirebaseUser } from 'firebase/auth';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
-import { useAuth } from './hooks/use-auth';
 
-export function UserMessage({ children }: { children: ReactNode }) {
-    const { user } = useAuth();
+export function UserMessage({
+  children,
+  user,
+}: {
+  children: ReactNode;
+  user: FirebaseUser | null;
+}) {
   return (
     <div className="flex items-start justify-end gap-3">
       <Card className="max-w-[85%] bg-primary text-primary-foreground">
         <CardContent className="p-3 text-base">{children}</CardContent>
       </Card>
       <Avatar className="h-9 w-9 border">
-        <AvatarImage src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'}/>
+        <AvatarImage
+          src={user?.photoURL ?? undefined}
+          alt={user?.displayName ?? 'User'}
+        />
         <AvatarFallback className="bg-transparent text-primary">
-            <User />
+          <User />
         </AvatarFallback>
       </Avatar>
     </div>
