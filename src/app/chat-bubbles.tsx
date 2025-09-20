@@ -13,13 +13,10 @@ export function UserMessage({ children }: { children: ReactNode }) {
         <CardContent className="p-3 text-base">{children}</CardContent>
       </Card>
       <Avatar className="h-9 w-9 border">
-        {user?.photoURL ? (
-            <AvatarImage src={user.photoURL} alt={user.displayName || 'User'}/>
-        ): (
-            <AvatarFallback className="bg-transparent text-primary">
-                <User />
-            </AvatarFallback>
-        )}
+        <AvatarImage src={user?.photoURL ?? undefined} alt={user?.displayName ?? 'User'}/>
+        <AvatarFallback className="bg-transparent text-primary">
+            <User />
+        </AvatarFallback>
       </Avatar>
     </div>
   );
