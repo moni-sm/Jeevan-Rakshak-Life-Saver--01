@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState, useTransition, useMemo } from 'react';
 import { Ambulance, HeartPulse, Hospital, LoaderCircle, MapPin, Phone, Siren } from 'lucide-react';
 import {
   AlertDialog,
@@ -15,11 +15,14 @@ import { useToast } from '@/hooks/use-toast';
 import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 import { dispatchAmbulance } from '@/app/actions';
 import { useAuth } from '@/hooks/use-auth';
+import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 
 export type Geolocation = {
   latitude: number;
   longitude: number;
 };
+
+type Hospital = NonNullable<EmergencyDetectionOutput['hospitals']>[0];
 
 type EmergencyDialogProps = {
   emergencyType: string;
@@ -79,22 +82,44 @@ export function EmergencyDialog({
       }
     );
   };
+  
+  const sortedHospitals = useMemo(() => {
+    if (!hospitals) return [];
+    return [...hospitals].sort((a, b) => {
+      const distA = parseFloat(a.distance.split(' ')[0]);
+      const distB = parseFloat(b.distance.split(' ')[0]);
+      return distA - distB;
+    });
+  }, [hospitals]);
 
-  const handleAmbulanceClick = (hospital: any) => {
+
+  const handleAmbulanceClick = (hospital?: Hospital) => {
+    const targetHospital = hospital || sortedHospitals[0];
+
+    if (!targetHospital) {
+        toast({
+            variant: 'destructive',
+            title: "No hospital available",
+            description: "Could not find a hospital to dispatch an ambulance from.",
+        });
+        return;
+    }
+
     if (!location) {
         toast({
             variant: 'destructive',
             title: "Location required",
-            description: "Cannot dispatch an ambulance without your location.",
+            description: "Cannot dispatch an ambulance without your location. Please enable location services.",
         });
+        handleGetLocation();
         return;
     }
     startDispatchTransition(async () => {
-        const result = await dispatchAmbulance(hospital, location, user?.uid ?? null);
+        const result = await dispatchAmbulance(targetHospital, location, user?.uid ?? null);
         if (result.success) {
             toast({
                 title: "Ambulance Dispatched (Simulation)",
-                description: `An ambulance has been requested from ${hospital.name}. Help is on the way.`,
+                description: `An ambulance has been requested from ${targetHospital.name}. Help is on the way.`,
             });
         } else {
             toast({
@@ -121,77 +146,76 @@ export function EmergencyDialog({
         </AlertDialogHeader>
 
         {firstAid && (
-           <div className="mt-4 rounded-lg border bg-secondary/50 p-4">
-           <h3 className="font-bold text-primary flex items-center gap-2"><HeartPulse/> First Aid Advice</h3>
-           <p className="mt-2 text-sm text-muted-foreground">
+           <Card className="bg-secondary/50">
+            <CardHeader className='p-4'>
+                <CardTitle className="flex items-center gap-2 text-base text-primary"><HeartPulse/> First Aid Advice</CardTitle>
+            </CardHeader>
+            <CardContent className='p-4 pt-0 text-sm text-muted-foreground'>
              {firstAid}
-           </p>
-         </div>
+           </CardContent>
+         </Card>
         )}
 
-        {(isLocating || (location && hospitals && hospitals.length > 0)) && (
-           <div className="mt-4 space-y-4">
-           <h3 className="font-bold text-primary flex items-center gap-2"><Hospital/> Nearby Hospitals</h3>
+        <Card className="bg-secondary/50">
+            <CardHeader className='p-4'>
+                <CardTitle className="flex items-center gap-2 text-base text-primary"><Hospital/> Nearby Hospitals</CardTitle>
+            </CardHeader>
+            <CardContent className='p-4 pt-0 space-y-4'>
             {isLocating &&  !location && (
-              <div className="flex flex-col items-center justify-center gap-4 py-8">
-                <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-muted-foreground">
+              <div className="flex flex-col items-center justify-center gap-2 py-4">
+                <LoaderCircle className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground text-sm">
                   Finding nearby hospitals...
                 </p>
               </div>
             )}
-            {location && hospitals && hospitals.length > 0 && (
-              <div className='space-y-3'>
-                {hospitals.map((hospital) => (
-                  <div key={hospital.name} className="rounded-lg border bg-secondary/50 p-4 space-y-2">
-                    <h4 className='font-semibold'>{hospital.name}</h4>
-                    <p className='text-sm text-muted-foreground'>{hospital.address}</p>
-                    <p className='text-sm text-muted-foreground flex items-center gap-2'><MapPin size={14}/> {hospital.distance}</p>
-                    <div className='flex items-center gap-2 pt-2'>
-                      <Button asChild variant="outline" size="sm">
-                        <a href={`tel:${hospital.phone}`}>
-                          <Phone size={16}/> Call Now
-                        </a>
-                      </Button>
-                      <Button size="sm" onClick={() => handleAmbulanceClick(hospital)} disabled={isDispatching || !location}>
-                        {isDispatching ? <LoaderCircle className="animate-spin" /> : <Ambulance size={16}/>}
-                        Send Ambulance
-                      </Button>
+
+            {locationError && (
+             <div className="text-center py-2">
+                <p className="text-sm text-destructive">{locationError}</p>
+                <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleGetLocation}>Try again</Button>
+             </div>
+            )}
+
+            {location && sortedHospitals.length > 0 && (
+                <>
+                <Button size="lg" className='w-full' onClick={() => handleAmbulanceClick()} disabled={isDispatching}>
+                    {isDispatching ? <LoaderCircle className="animate-spin" /> : <Ambulance/>}
+                    Request Ambulance from Nearest Hospital
+                </Button>
+                 <div className='space-y-3 pt-2'>
+                    {sortedHospitals.map((hospital) => (
+                    <div key={hospital.name} className="rounded-lg border bg-background/50 p-3 space-y-1">
+                        <h4 className='font-semibold'>{hospital.name}</h4>
+                        <p className='text-sm text-muted-foreground'>{hospital.address}</p>
+                        <p className='text-sm text-muted-foreground flex items-center gap-2'><MapPin size={14}/> {hospital.distance}</p>
+                        <div className='flex items-center gap-2 pt-2'>
+                        <Button asChild variant="outline" size="sm">
+                            <a href={`tel:${hospital.phone}`}>
+                            <Phone size={16}/> Call
+                            </a>
+                        </Button>
+                        </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                    ))}
+                </div>
+              </>
             )}
              {location && (!hospitals || hospitals.length === 0) && !isLocating && (
                 <p className='text-sm text-muted-foreground text-center py-4'>No hospitals found nearby.</p>
              )}
-          </div>
-        )}
+            </CardContent>
+        </Card>
 
-        <div className="mt-4 rounded-lg border bg-secondary/50 p-4">
-          <h3 className="font-bold text-primary">Alert Status</h3>
-            {location && (
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <MapPin className="h-4 w-4" />
-              <span>
-                Location captured: {location.latitude.toFixed(4)},{' '}
-                {location.longitude.toFixed(4)}
-              </span>
-            </div>
-          )}
-          {locationError && (
-             <div className="mt-2">
-                <p className="text-sm text-destructive">{locationError}</p>
-                <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleGetLocation}>Try again</Button>
-             </div>
-          )}
-            <p className="mt-3 text-xs text-muted-foreground">
+
+        <div className="mt-2 rounded-lg border bg-secondary/50 p-4">
+            <p className="text-xs text-muted-foreground">
             This is a simulation. In a real emergency, please call your local emergency services directly.
           </p>
         </div>
 
-        <AlertDialogFooter className="mt-4">
-          <Button onClick={onClose} className="w-full">Close</Button>
+        <AlertDialogFooter className="mt-2">
+          <Button onClick={onClose} className="w-full" variant="outline">Close</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

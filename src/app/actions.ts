@@ -4,6 +4,7 @@ import { detectEmergency, EmergencyDetectionOutput } from '@/ai/flows/emergency-
 import { multilingualHealthQA } from '@/ai/flows/multilingual-health-qa';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Geolocation } from '@/components/emergency-dialog';
 
 export type Message = {
   id: string;
@@ -48,7 +49,7 @@ export async function submitUserMessage(
   // 1. Check for emergency
   try {
     const emergencyResult = await detectEmergency({ symptoms: userInput, language, location });
-    if (emergencyResult.isEmergency && emergencyResult.confidenceLevel > 0.6) {
+    if (emergencyResult.isEmergency && emergencyResult.confidenceLevel > 0.5) {
       return {
         status: 'emergency',
         message: emergencyResult.reason,
@@ -64,6 +65,7 @@ export async function submitUserMessage(
     }
   } catch (e) {
     console.error('Emergency detection failed:', e);
+    // Continue to Q&A if emergency detection fails
   }
 
   // 2. If not an emergency, perform Q&A
