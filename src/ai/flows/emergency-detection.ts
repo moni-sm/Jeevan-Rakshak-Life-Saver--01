@@ -11,6 +11,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
+import { findNearbyHospitals } from '../tools/find-nearby-hospitals';
 
 const EmergencyDetectionInputSchema = z.object({
   symptoms: z
@@ -57,6 +58,12 @@ const EmergencyDetectionOutputSchema = z.object({
     .string()
     .optional()
     .describe('Immediate first aid or temporary relief advice for the user while waiting for medical help. This advice should be safe and easy to follow for a layperson. This should be in the same language as the input.'),
+  hospitals: z.array(z.object({
+    name: z.string(),
+    address: z.string(),
+    phone: z.string(),
+    distance: z.string(),
+  })).optional().describe('A list of nearby hospitals.'),
 });
 export type EmergencyDetectionOutput = z.infer<typeof EmergencyDetectionOutputSchema>;
 
@@ -68,9 +75,12 @@ const detectEmergencyPrompt = ai.definePrompt({
   name: 'detectEmergencyPrompt',
   input: {schema: EmergencyDetectionInputSchema},
   output: {schema: EmergencyDetectionOutputSchema},
+  tools: [findNearbyHospitals],
   prompt: `You are an expert medical assistant specializing in emergency detection.  Given the following symptoms, determine if it is an emergency or not.  If it is, provide the type of emergency. Also, provide a confidence level between 0 and 1.
 
 If it is an emergency, provide simple, safe, and effective first aid advice that a person can perform while waiting for a doctor. The advice should be in the same language as the user's query.
+
+If a location is provided, use the findNearbyHospitals tool to find hospitals near the user.
 
 Symptoms: {{{symptoms}}}
 Language: {{{language}}}

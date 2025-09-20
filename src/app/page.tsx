@@ -18,6 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 
 declare global {
   interface Window {
@@ -36,6 +37,14 @@ const languages = [
   { value: 'bn', label: 'বাংলা (Bengali)' },
 ];
 
+type EmergencyInfo = {
+  type: string;
+  reason: string;
+  userInput: string;
+  firstAid?: string;
+  hospitals?: EmergencyDetectionOutput['hospitals'];
+}
+
 export default function Home() {
   const { toast } = useToast();
   const [formState, formAction, isPending] = useActionState(submitUserMessage, initialState);
@@ -52,12 +61,7 @@ export default function Home() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Emergency flow state
-  const [emergencyInfo, setEmergencyInfo] = useState<{
-    type: string;
-    reason: string;
-    userInput: string;
-    firstAid?: string;
-  } | null>(null);
+  const [emergencyInfo, setEmergencyInfo] = useState<EmergencyInfo | null>(null);
 
   // Setup SpeechRecognition
   useEffect(() => {
@@ -126,6 +130,7 @@ export default function Home() {
         reason: formState.message!,
         userInput: formState.data.userInput,
         firstAid: formState.data.firstAid,
+        hospitals: formState.data.hospitals,
       });
       setMessages((prev) => [
         ...prev,
@@ -274,6 +279,7 @@ export default function Home() {
           emergencyType={emergencyInfo.type}
           reason={emergencyInfo.reason}
           firstAid={emergencyInfo.firstAid}
+          hospitals={emergencyInfo.hospitals}
           onLocationFound={handleLocationFound}
           onClose={() => setEmergencyInfo(null)}
         />

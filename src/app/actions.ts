@@ -1,6 +1,6 @@
 'use server';
 
-import { detectEmergency } from '@/ai/flows/emergency-detection';
+import { detectEmergency, EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 import { multilingualHealthQA } from '@/ai/flows/multilingual-health-qa';
 
 export type FormState = {
@@ -11,6 +11,7 @@ export type FormState = {
     emergencyType?: string;
     location?: string;
     firstAid?: string;
+    hospitals?: EmergencyDetectionOutput['hospitals']
   };
 };
 
@@ -39,6 +40,7 @@ export async function submitUserMessage(
           emergencyType: emergencyResult.emergencyType || 'unspecified',
           location: location,
           firstAid: emergencyResult.firstAid,
+          hospitals: emergencyResult.hospitals,
         },
       };
     }

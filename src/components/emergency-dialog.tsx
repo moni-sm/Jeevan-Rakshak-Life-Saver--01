@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { HeartPulse, LoaderCircle, MapPin, Siren } from 'lucide-react';
+import { Ambulance, HeartPulse, Hospital, LoaderCircle, MapPin, Phone, Siren } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogContent,
@@ -11,6 +11,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Button } from './ui/button';
+import { useToast } from '@/hooks/use-toast';
+import type { EmergencyDetectionOutput } from '@/ai/flows/emergency-detection';
 
 export type Geolocation = {
   latitude: number;
@@ -21,6 +23,7 @@ type EmergencyDialogProps = {
   emergencyType: string;
   reason: string;
   firstAid?: string;
+  hospitals?: EmergencyDetectionOutput['hospitals'];
   onClose: () => void;
   onLocationFound: (location: Geolocation) => void;
 };
@@ -30,9 +33,11 @@ export function EmergencyDialog({
   emergencyType,
   reason,
   firstAid,
+  hospitals,
   onClose,
   onLocationFound,
 }: EmergencyDialogProps) {
+  const { toast } = useToast();
   const [step, setStep] = useState<'confirm' | 'locating' | 'notified'>('confirm');
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -61,6 +66,13 @@ export function EmergencyDialog({
       }
     );
   };
+
+  const handleAmbulanceClick = (hospitalName: string) => {
+    toast({
+      title: "Ambulance Dispatched (Simulation)",
+      description: `An ambulance has been requested from ${hospitalName}. Help is on the way.`,
+    })
+  }
   
   useEffect(() => {
     if (step === 'confirm' && emergencyType) {
@@ -71,9 +83,11 @@ export function EmergencyDialog({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step, emergencyType]);
 
+  const hasNotified = step === 'notified';
+
   return (
     <AlertDialog open onOpenChange={onClose}>
-      <AlertDialogContent>
+      <AlertDialogContent className="max-h-[90vh] overflow-y-auto">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-destructive">
             <Siren className="h-6 w-6" />
@@ -98,23 +112,44 @@ export function EmergencyDialog({
           <div className="flex flex-col items-center justify-center gap-4 py-8">
             <LoaderCircle className="h-12 w-12 animate-spin text-primary" />
             <p className="text-muted-foreground">
-              Attempting to get your location to alert the nearest hospital...
+              Attempting to get your location to find nearby hospitals...
             </p>
           </div>
         )}
 
-        {step === 'notified' && (
+        {hasNotified && hospitals && hospitals.length > 0 && (
+          <div className="mt-4 space-y-4">
+            <h3 className="font-bold text-primary flex items-center gap-2"><Hospital/> Nearby Hospitals</h3>
+            <div className='space-y-3'>
+              {hospitals.map((hospital) => (
+                <div key={hospital.name} className="rounded-lg border bg-secondary/50 p-4 space-y-2">
+                  <h4 className='font-semibold'>{hospital.name}</h4>
+                  <p className='text-sm text-muted-foreground'>{hospital.address}</p>
+                  <p className='text-sm text-muted-foreground flex items-center gap-2'><MapPin size={14}/> {hospital.distance}</p>
+                  <div className='flex items-center gap-2 pt-2'>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={`tel:${hospital.phone}`}>
+                        <Phone size={16}/> Call Now
+                      </a>
+                    </Button>
+                    <Button size="sm" onClick={() => handleAmbulanceClick(hospital.name)}>
+                      <Ambulance size={16}/> Send Ambulance
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {hasNotified && (
           <div className="mt-4 rounded-lg border bg-secondary/50 p-4">
-            <h3 className="font-bold text-primary">Hospital Alert Sent (Mock)</h3>
-            <p className="mt-2 text-sm">
-              The nearest hospital has been notified of a potential{' '}
-              <span className="font-semibold">{emergencyType}</span>.
-            </p>
-            {location && (
+            <h3 className="font-bold text-primary">Alert Status</h3>
+             {location && (
               <div className="mt-2 flex items-center gap-2 text-sm">
                 <MapPin className="h-4 w-4" />
                 <span>
-                  Location: {location.latitude.toFixed(4)},{' '}
+                  Location captured: {location.latitude.toFixed(4)},{' '}
                   {location.longitude.toFixed(4)}
                 </span>
               </div>
@@ -122,18 +157,14 @@ export function EmergencyDialog({
             {locationError && (
               <p className="mt-2 text-sm text-destructive">{locationError}</p>
             )}
-            <p className="mt-3 text-xs text-muted-foreground">
-              Please remain calm. Help is on the way. This is a simulation.
+             <p className="mt-3 text-xs text-muted-foreground">
+              This is a simulation. In a real emergency, please call your local emergency services directly.
             </p>
           </div>
         )}
 
         <AlertDialogFooter className="mt-4">
-          {step === 'notified' ? (
-             <Button onClick={onClose} className="w-full">Close</Button>
-          ) : (
-             <Button onClick={onClose} variant="outline" className="w-full">Close</Button>
-          )}
+          <Button onClick={onClose} className="w-full">Close</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
