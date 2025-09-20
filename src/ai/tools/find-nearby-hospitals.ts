@@ -13,15 +13,14 @@ const HospitalSchema = z.object({
 export const findNearbyHospitals = ai.defineTool(
     {
         name: 'findNearbyHospitals',
-        description: 'Finds nearby hospitals based on latitude and longitude.',
+        description: "Finds nearby hospitals based on the user's location.",
         inputSchema: z.object({
-            latitude: z.number(),
-            longitude: z.number(),
+            location: z.string().describe("The user's current location as a string, e.g., 'latitude,longitude' or a place name."),
         }),
         outputSchema: z.array(HospitalSchema),
     },
     async (input) => {
-        console.log(`Finding hospitals near: ${input.latitude}, ${input.longitude}`);
+        console.log(`Finding hospitals near: ${input.location}`);
 
         // Mock data for nearby hospitals. In a real application, you would
         // use a service like Google Maps Platform to get this information.

@@ -108,7 +108,7 @@ export default function Home() {
 
   // Process form state changes
   useEffect(() => {
-    if (formState.status === 'idle' || formState.status === 'emergency' && formState.data?.location) return;
+    if (formState.status === 'idle') return;
 
     if (formState.status === 'success' && formState.data?.userInput) {
       setMessages((prev) => [
@@ -124,34 +124,46 @@ export default function Home() {
           id: Date.now() + 1,
         },
       ]);
+       if(formRef.current) formRef.current.reset();
     } else if (formState.status === 'emergency' && formState.data?.emergencyType) {
-      setEmergencyInfo({
+      const isLocationUpdate = formState.data.location && emergencyInfo;
+      const currentEmergencyInfo = isLocationUpdate ? emergencyInfo : {
         type: formState.data.emergencyType,
         reason: formState.message!,
         userInput: formState.data.userInput,
-        firstAid: formState.data.firstAid,
-        hospitals: formState.data.hospitals,
-      });
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: 'user',
-          text: formState.data.userInput,
-          id: Date.now(),
-        },
-      ]);
+      };
+
+      const updatedEmergencyInfo: EmergencyInfo = {
+        ...currentEmergencyInfo,
+        firstAid: formState.data.firstAid || currentEmergencyInfo.firstAid,
+        hospitals: formState.data.hospitals || (isLocationUpdate ? emergencyInfo.hospitals : undefined),
+      };
+
+      setEmergencyInfo(updatedEmergencyInfo);
+      
+      if (!isLocationUpdate) {
+        setMessages((prev) => [
+          ...prev,
+          {
+            role: 'user',
+            text: formState.data!.userInput,
+            id: Date.now(),
+          },
+        ]);
+      }
     } else if (formState.status === 'error') {
       toast({
         variant: 'destructive',
         title: 'An error occurred',
         description: formState.message,
       });
+      if(formRef.current) formRef.current.reset();
     }
 
     if(formState.status !== 'emergency') {
-      formRef.current?.reset();
+      if(formRef.current) formRef.current.reset();
     }
-  }, [formState, toast]);
+  }, [formState, toast, emergencyInfo]);
 
   // Scroll to bottom of chat
   useEffect(() => {
@@ -281,7 +293,10 @@ export default function Home() {
           firstAid={emergencyInfo.firstAid}
           hospitals={emergencyInfo.hospitals}
           onLocationFound={handleLocationFound}
-          onClose={() => setEmergencyInfo(null)}
+          onClose={() => {
+            setEmergencyInfo(null);
+            formRef.current?.reset();
+          }}
         />
       )}
     </div>

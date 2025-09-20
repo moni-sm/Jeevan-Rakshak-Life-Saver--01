@@ -76,7 +76,7 @@ const detectEmergencyPrompt = ai.definePrompt({
   input: {schema: EmergencyDetectionInputSchema},
   output: {schema: EmergencyDetectionOutputSchema},
   tools: [findNearbyHospitals],
-  prompt: `You are an expert medical assistant specializing in emergency detection.  Given the following symptoms, determine if it is an emergency or not.  If it is, provide the type of emergency. Also, provide a confidence level between 0 and 1.
+  prompt: `You are an expert medical assistant specializing in emergency detection. Given the following symptoms, determine if it is an emergency or not. If it is, provide the type of emergency. Also, provide a confidence level between 0 and 1.
 
 If it is an emergency, provide simple, safe, and effective first aid advice that a person can perform while waiting for a doctor. The advice should be in the same language as the user's query.
 
