@@ -37,7 +37,19 @@ const languages = [
   { value: 'en', label: 'English' },
   { value: 'hi', label: 'हिंदी (Hindi)' },
   { value: 'bn', label: 'বাংলা (Bengali)' },
+  { value: 'mr', label: 'मराठी (Marathi)' },
+  { value: 'te', label: 'తెలుగు (Telugu)' },
+  { value: 'ta', label: 'தமிழ் (Tamil)' },
+  { value: 'gu', label: 'ગુજરાતી (Gujarati)' },
+  { value: 'kn', label: 'ಕನ್ನಡ (Kannada)' },
+  { value: 'ml', label: 'മലയാളം (Malayalam)' },
+  { value: 'pa', label: 'ਪੰਜਾਬੀ (Punjabi)' },
+  { value: 'ur', label: 'اردو (Urdu)' },
+  { value: 'as', label: 'অসমীয়া (Assamese)' },
+  { value: 'or', label: 'ଓଡ଼ିଆ (Odia)' },
+  { value: 'ne', label: 'नेपाली (Nepali)' },
 ];
+
 
 type EmergencyInfo = {
   type: string;
