@@ -44,7 +44,7 @@ export function EmergencyDialog({
   isFindingHospitals,
 }: EmergencyDialogProps) {
   const { toast } = useToast();
-  const [isLocating, setIsLocating] = useState(!hospitals);
+  const [isLocating, setIsLocating] = useState(false);
   const [location, setLocation] = useState<Geolocation | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
@@ -76,11 +76,14 @@ export function EmergencyDialog({
   };
   
   useEffect(() => {
-    if (!hospitals && !location && !isLocating) {
+    // Only attempt to get location if we don't have it and we don't have hospitals yet.
+    if (!location && !hospitals) {
       handleGetLocation();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hospitals, location, isLocating]);
+    // We only want this to run when the dialog mounts and `hospitals` isn't available yet.
+    // The handleGetLocation function is stable and doesn't need to be a dependency.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   const sortedHospitals = useMemo(() => {
     if (!hospitals) return [];
