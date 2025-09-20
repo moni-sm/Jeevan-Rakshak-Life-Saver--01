@@ -131,6 +131,8 @@ export default function Home() {
       }
       if(formRef.current) formRef.current.reset();
     } else if (formState.status === 'emergency' && formState.data) {
+        // This is the section causing the infinite loop.
+        // `emergencyInfo` is a dependency, but it's also set in this effect.
         const isLocationUpdate = !!(formState.data.location && emergencyInfo);
         
         const currentEmergencyInfo = isLocationUpdate ? emergencyInfo : {
@@ -161,7 +163,8 @@ export default function Home() {
     if(formState.status !== 'emergency') {
       if(formRef.current) formRef.current.reset();
     }
-  }, [formState, toast, emergencyInfo]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formState, toast]);
 
   useEffect(() => {
     chatContainerRef.current?.scrollTo({
