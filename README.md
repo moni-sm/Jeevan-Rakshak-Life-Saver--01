@@ -70,4 +70,8 @@ To run this project locally, follow these steps:
 
 Open [(https://jeevan-rakshak-life-saver-01.vercel.app/)) in your browser to see the application running.
 
+Contact 
+LinkedIn - https://www.linkedin.com/in/monika--sm/
+Email - minikasm2019@gmail.com
+
 
