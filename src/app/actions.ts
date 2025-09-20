@@ -35,7 +35,6 @@ export async function submitUserMessage(
   const userInput = formData.get('message') as string;
   const language = formData.get('language') as string;
   const location = formData.get('location') as string | undefined;
-  const userId = formData.get('userId') as string | undefined;
 
 
   if (!userInput) {
@@ -48,19 +47,6 @@ export async function submitUserMessage(
     text: userInput,
     createdAt: new Date(),
   };
-
-  if (userId) {
-    try {
-      const userMessagesRef = collection(db, 'users', userId, 'messages');
-      await addDoc(userMessagesRef, {
-        role: 'user',
-        text: userInput,
-        createdAt: serverTimestamp(),
-      });
-    } catch (error) {
-      console.error("Failed to save user message:", error);
-    }
-  }
 
   // 1. Check for emergency
   try {
@@ -97,19 +83,6 @@ export async function submitUserMessage(
         text: qaResult.answer,
         createdAt: new Date(),
     };
-    
-    if (userId) {
-      try {
-        const userMessagesRef = collection(db, 'users', userId, 'messages');
-        await addDoc(userMessagesRef, {
-          role: 'assistant',
-          text: qaResult.answer,
-          createdAt: serverTimestamp(),
-        });
-      } catch (error) {
-        console.error("Failed to save assistant message:", error);
-      }
-    }
 
 
     return {
@@ -139,7 +112,7 @@ export async function submitUserMessage(
   }
 }
 
-export async function dispatchAmbulance(hospital: any, location: Geolocation, userId: string | null) {
+export async function dispatchAmbulance(hospital: any, location: Geolocation) {
     if (!hospital || !location) {
         return { success: false, error: 'Missing hospital or location data.' };
     }
@@ -150,7 +123,7 @@ export async function dispatchAmbulance(hospital: any, location: Geolocation, us
             hospitalName: hospital.name,
             hospitalAddress: hospital.address,
             userLocation: location,
-            userId: userId || 'anonymous',
+            userId: 'anonymous',
             status: 'pending',
             createdAt: serverTimestamp(),
         });
