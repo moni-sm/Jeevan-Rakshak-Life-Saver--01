@@ -47,37 +47,39 @@ export function EmergencyDialog({
   const [locationError, setLocationError] = useState<string | null>(null);
   const [isDispatching, startDispatchTransition] = useTransition();
 
-
-  const handleGetLocation = () => {
-    setIsLocating(true);
-    setLocationError(null);
-    if (!navigator.geolocation) {
-      setLocationError('Geolocation is not supported by your browser.');
-      setIsLocating(false);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const newLocation = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setLocation(newLocation);
-        onLocationFound(newLocation);
-        setIsLocating(false);
-      },
-      () => {
-        setLocationError('Could not get your location. Please grant permission and try again.');
-        setIsLocating(false);
-      }
-    );
-  };
-
+  
   useEffect(() => {
-    handleGetLocation();
+    const handleGetLocation = () => {
+      setIsLocating(true);
+      setLocationError(null);
+      if (!navigator.geolocation) {
+        setLocationError('Geolocation is not supported by your browser.');
+        setIsLocating(false);
+        return;
+      }
+  
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const newLocation = {
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          };
+          setLocation(newLocation);
+          onLocationFound(newLocation);
+          setIsLocating(false);
+        },
+        () => {
+          setLocationError('Could not get your location. Please grant permission and try again.');
+          setIsLocating(false);
+        }
+      );
+    };
+
+    if (!hospitals) {
+      handleGetLocation();
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hospitals]);
   
   const sortedHospitals = useMemo(() => {
     if (!hospitals) return [];
@@ -107,7 +109,7 @@ export function EmergencyDialog({
             title: "Location required",
             description: "Cannot dispatch an ambulance without your location. Please enable location services.",
         });
-        handleGetLocation();
+        // We don't call handleGetLocation here as the useEffect should handle retries if the user grants permission.
         return;
     }
     startDispatchTransition(async () => {
@@ -126,6 +128,26 @@ export function EmergencyDialog({
         }
     });
   }
+
+  const handleRetryLocation = () => {
+    setIsLocating(true);
+    setLocationError(null);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const newLocation = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setLocation(newLocation);
+        onLocationFound(newLocation);
+        setIsLocating(false);
+      },
+      () => {
+        setLocationError('Could not get your location. Please grant permission and try again.');
+        setIsLocating(false);
+      }
+    );
+  };
 
   return (
     <AlertDialog open onOpenChange={onClose}>
@@ -169,13 +191,13 @@ export function EmergencyDialog({
             {locationError && !isLocating &&(
              <div className="text-center py-2">
                 <p className="text-sm text-destructive">{locationError}</p>
-                <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleGetLocation}>Try again</Button>
+                <Button variant="link" size="sm" className='p-0 h-auto' onClick={handleRetryLocation}>Try again</Button>
              </div>
             )}
 
             {sortedHospitals.length > 0 && (
                 <>
-                <Button size="lg" className='w-full' onClick={() => handleAmbulanceClick()} disabled={isDispatching}>
+                <Button size="lg" className='w-full' onClick={() => handleAmbulanceClick()} disabled={isDispatching || !location}>
                     {isDispatching ? <LoaderCircle className="animate-spin" /> : <><Ambulance className='mr-2'/> Request Ambulance from Nearest Hospital</>}
                 </Button>
                  <div className='space-y-3 pt-2'>
@@ -198,7 +220,7 @@ export function EmergencyDialog({
                             size="sm" 
                             className="flex-1"
                             onClick={() => handleAmbulanceClick(hospital)}
-                            disabled={isDispatching}
+                            disabled={isDispatching || !location}
                            >
                             <Ambulance size={16} className="mr-2"/> Send Ambulance
                           </Button>

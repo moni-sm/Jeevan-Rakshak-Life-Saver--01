@@ -129,10 +129,11 @@ export default function Home() {
         setMessages(prev => [...prev, ...formState.messages!]);
       }
       if(formRef.current) formRef.current.reset();
-    } else if (formState.status === 'emergency' && formState.data?.emergencyType) {
-        const isLocationUpdate = formState.data.location && emergencyInfo;
+    } else if (formState.status === 'emergency' && formState.data) {
+        const isLocationUpdate = !!(formState.data.location && emergencyInfo);
+        
         const currentEmergencyInfo = isLocationUpdate ? emergencyInfo : {
-          type: formState.data.emergencyType,
+          type: formState.data.emergencyType || 'Uspecified',
           reason: formState.message!,
           userInput: formState.data.userInput,
         };

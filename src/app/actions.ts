@@ -51,7 +51,7 @@ export async function submitUserMessage(
   // 1. Check for emergency
   try {
     const emergencyResult = await detectEmergency({ symptoms: userInput, language, location });
-    if (emergencyResult.isEmergency && emergencyResult.confidenceLevel > 0.5) {
+    if (emergencyResult.isEmergency && emergencyResult.confidenceLevel > 0.4) {
       return {
         status: 'emergency',
         message: emergencyResult.reason,
